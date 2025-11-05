@@ -1,13 +1,15 @@
 import {JsonController, Get, Param, Put, Post, Delete, Body} from 'routing-controllers';
-import {redis} from "../redis.js";
+import {tasksQueue} from "../queues/tasks.queue.js";
 import {TaskRepository} from "../repositories/TaskRepository.js";
 import {CreateTaskDTO, TaskID} from "../types/task.js";
 
 @JsonController('/task')
 export class TaskController {
-  @Post('/:id')
+  @Post('/')
   async create(@Body() data: CreateTaskDTO) {
-    redis.publish('task:create', JSON.stringify(data));
+    void tasksQueue.add('task:create', data);
+
+    return null;
   }
 
   @Get('/:id')
@@ -16,12 +18,16 @@ export class TaskController {
   }
 
   @Put('/:id')
-  async update(@Param('id') id: TaskID, @Body() data: Partial<CreateTaskDTO>) {
-    redis.publish('task:update', JSON.stringify({id, data}));
+  async update(@Param('id') id: TaskID, @Body() data: CreateTaskDTO) {
+    void tasksQueue.add('task:update', JSON.stringify({id, data}));
+
+    return null;
   }
 
   @Delete('/:id')
   async delete(@Param('id') id: TaskID) {
-    redis.publish('task:delete', id);
+    void tasksQueue.add('task:delete', id);
+
+    return null;
   }
 }
